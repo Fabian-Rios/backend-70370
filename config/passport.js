@@ -1,27 +1,36 @@
 import passport from 'passport';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
 import UserModel from '../models/User.js';
-import dotenv from 'dotenv';
 
-dotenv.config();
+const JWT_SECRET = 'superSecretKey123';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-
-const opts = {
-    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: JWT_SECRET
+const cookieExtractor = (req) => {
+    let token = null;
+    if (req && req.cookies) {
+    token = req.cookies.jwt;
+}
+    return token;
 };
 
-passport.use(new JwtStrategy(opts, async (jwt_payload, done) => {
+const options = {
+    jwtFromRequest: cookieExtractor,
+    secretOrKey: JWT_SECRET,
+};
+
+passport.use(
+    new JwtStrategy(options, async (jwt_payload, done) => {
     try {
         const user = await UserModel.findById(jwt_payload.id);
-        if (!user) {
-            return done(null, false);
-        }
+        if (user) {
         return done(null, user);
-    } catch (err) {
-        done(err, false);
+        } else {
+        return done(null, false);
+        }
+    } catch (error) {
+        return done(error, false);
     }
-}));
+})
+);
 
 export default passport;
+

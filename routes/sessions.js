@@ -1,39 +1,58 @@
 import { Router } from 'express';
+import UserDAO from '../dao/userDAO.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import UserModel from '../models/User.js'; 
-import { authMiddleware } from '../middlewares/auth.js'; 
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { successResponse, errorResponse } from '../utils/response.js';
 
 const router = Router();
+const JWT_SECRET = 'superSecretKey123'; 
 
-const JWT_SECRET = process.env.JWT_SECRET; 
+router.post('/register', async (req, res) => {
+    const { first_name, last_name, email, age, password } = req.body;
+
+    try {
+        const existingUser = await UserDAO.findUserByEmail(email);
+        if (existingUser) {
+            return errorResponse(res, 'El usuario ya está registrado');
+        }
+
+        const hashedPassword = bcrypt.hashSync(password, 10);
+
+        const newUser = await UserDAO.createUser({
+            first_name,
+            last_name,
+            email,
+            age,
+            password: hashedPassword,
+            role: 'user',
+        });
+
+        successResponse(res, 'Usuario registrado con éxito', newUser);
+    } catch (error) {
+        errorResponse(res, 'Error interno del servidor', error);
+    }
+});
 
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const user = await UserModel.findOne({ email });
+        const user = await UserDAO.findUserByEmail(email);
         if (!user) {
-            return res.status(401).json({ error: 'Usuario no encontrado' });
+            return errorResponse(res, 'Usuario no encontrado');
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = bcrypt.compareSync(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ error: 'Contraseña incorrecta' });
+            return errorResponse(res, 'Contraseña incorrecta');
         }
 
         const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-        res.cookie('jwt', token, { httpOnly: true }).json({ message: 'Login exitoso', token });
+        res.cookie('jwt', token, { httpOnly: true });
+        successResponse(res, 'Login exitoso', { token });
     } catch (error) {
-        res.status(500).json({ error: 'Error interno del servidor' });
+        errorResponse(res, 'Error interno del servidor', error);
     }
-});
-
-router.get('/current', authMiddleware, (req, res) => {
-    res.json({ user: req.user });
 });
 
 export default router;

@@ -10,6 +10,7 @@
     "nodemon": "^3.1.9"
   },
   "dependencies": {
+    "backend-70370": "file:",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "dotenv": "^16.4.7",

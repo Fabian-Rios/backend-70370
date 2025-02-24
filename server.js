@@ -4,6 +4,10 @@ import cookieParser from 'cookie-parser';
 import passport from './config/passport.js';
 import sessionsRouter from './routes/sessions.js';
 import dotenv from 'dotenv';
+import productsRouter from './routes/products.js';
+import cartsRouter from './routes/carts.js';
+import Ticket from './models/Ticket.js';
+
 
 dotenv.config();
 
@@ -19,6 +23,10 @@ mongoose.connect('mongodb://localhost:27017/your-database-name')
     .catch((err) => console.error('Error de conexión:', err));
 
 app.use('/api/sessions', sessionsRouter);
+
+app.use('/api/products', productsRouter);
+
+app.use('/api/carts', cartsRouter);
 
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en http://localhost:${PORT}`);
